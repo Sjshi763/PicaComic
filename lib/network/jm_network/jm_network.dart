@@ -581,11 +581,15 @@ class JmNetwork {
           //跳过
         }
       });
+      // return Res(comics,
+      //     subData: comics.isEmpty
+      //         ? 0
+      //         : (int.parse(res.data["total"]) / res.data["content"].length)
+      //             .ceil());
       return Res(comics,
-          subData: comics.isEmpty
-              ? 0
-              : (int.parse(res.data["total"]) / res.data["content"].length)
-                  .ceil());
+            subData: comics.isEmpty
+                ? 0
+                : ((res.data["total"] as num) / res.data["content"].length).ceil());
     } catch (e, s) {
       LogManager.addLog(LogLevel.error, "Data Analysis", "$e\n$s");
       Future.delayed(const Duration(microseconds: 500),
