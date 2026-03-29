@@ -78,4 +78,4 @@ Pica Comic 内置了 6 个漫画源：
 > 看到好看的百合本子一定要来群里at群主看，ntr禁止出现在群里！
 
 # 群
-[tg](ttps://t.me/+isVHEQ5uGes3NWM1)
+[tg](https://t.me/+isVHEQ5uGes3NWM1)
