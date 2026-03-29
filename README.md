@@ -1,9 +1,9 @@
 # Pica Comic
 
 [![flutter](https://img.shields.io/badge/flutter-3.38.6-blue)](https://flutter.dev/)
-[![License](https://img.shields.io/github/license/Pacalini/PicaComic)](https://github.com/Pacalini/PicaComic/blob/master/LICENSE)
-[![Download](https://img.shields.io/github/v/release/Pacalini/PicaComic)](https://github.com/Pacalini/PicaComic/releases)
-[![stars](https://img.shields.io/github/stars/Pacalini/PicaComic)](https://github.com/Pacalini/PicaComic/stargazers)
+[![License](https://img.shields.io/github/license/Sjshi763/PicaComic)](https://github.com/Pacalini/PicaComic/blob/master/LICENSE)
+[![Download](https://img.shields.io/github/v/release/Sjshi763/PicaComic)](https://github.com/Pacalini/PicaComic/releases)
+[![stars](https://img.shields.io/github/stars/Sjshi763/PicaComic)](https://github.com/Pacalini/PicaComic/stargazers)
 
 使用 Flutter 构建的多源漫画阅读应用。
 ** 从[Pacalini](https://github.com/Pacalini) 分支而来 **
