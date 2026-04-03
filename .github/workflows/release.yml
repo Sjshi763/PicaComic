@@ -18,7 +18,7 @@ on:
     types: [published]
 
 env:
-  FLUTTER_VERSION: '3.19.6'
+  FLUTTER_VERSION: '3.38.6'
 
 jobs:
   setup:
