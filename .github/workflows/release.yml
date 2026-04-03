@@ -91,6 +91,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+        
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -107,7 +108,7 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release --build-name=${{ needs.setup.outputs.version }}
+        run: flutter build apk --release --build-name=${{ needs.setup.outputs.version }} --dart-define=split-apk=true
 
       - name: Build AAB
         run: flutter build appbundle --release --build-name=${{ needs.setup.outputs.version }}

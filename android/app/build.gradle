@@ -33,12 +33,15 @@ android {
     compileSdk flutter.compileSdkVersion
     ndkVersion "28.0.13004108"
 
-    splits{
-        abi {
-            reset()
-            include 'arm64-v8a', 'x86_64'
-            enable true
-            universalApk true
+    // Only enable splits for APK builds, not for AAB
+    if (project.hasProperty('split-apk')) {
+        splits{
+            abi {
+                reset()
+                include 'arm64-v8a', 'x86_64'
+                enable true
+                universalApk true
+            }
         }
     }
 
