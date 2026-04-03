@@ -107,10 +107,10 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release --build-name=${{ needs.setup.outputs.version }}
+        run: flutter build apk --release --no-signing --build-name=${{ needs.setup.outputs.version }}
 
       - name: Build AAB
-        run: flutter build appbundle --release --build-name=${{ needs.setup.outputs.version }}
+        run: flutter build appbundle --release --no-signing --build-name=${{ needs.setup.outputs.version }}
 
       - name: Upload APK
         uses: actions/upload-release-asset@v1
