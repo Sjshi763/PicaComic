@@ -1,0 +1,289 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 4.2.10)'
+        required: true
+      tag:
+        description: 'Release tag (e.g., v4.2.10)'
+        required: true
+      create_release:
+        description: 'Create GitHub Release'
+        required: true
+        default: true
+        type: boolean
+  release:
+    types: [published]
+
+env:
+  FLUTTER_VERSION: '3.19.6'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      release_id: ${{ steps.release.outputs.id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version and tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            # Extract version from tag (remove 'v' prefix if exists)
+            TAG="${{ github.ref_name }}"
+            VERSION="${TAG#v}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION, Tag: $TAG"
+
+      - name: Update version in pubspec.yaml
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # Extract build number from current version
+          BUILD_NUMBER=$(echo "${{ steps.version.outputs.version }}" | sed 's/.*+\(.*\)/\1/')
+          # Update version in pubspec.yaml
+          sed -i "s/^version: .*/version: ${{ steps.version.outputs.version }}+${BUILD_NUMBER}/" pubspec.yaml
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add pubspec.yaml
+          git commit -m "Bump version to ${{ steps.version.outputs.version }}"
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin ${{ steps.version.outputs.tag }}
+
+      - name: Create Release
+        id: release
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          release_name: PicaComic ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          body: |
+            ## 更新内容
+            - 请手动填写更新内容
+
+      - name: Get Release ID
+        id: get_release
+        if: github.event_name == 'release'
+        run: |
+          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | \
+            jq -r .id)
+          echo "id=$RELEASE_ID" >> $GITHUB_OUTPUT
+
+  build-android:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release --build-name=${{ needs.setup.outputs.version }}
+
+      - name: Build AAB
+        run: flutter build appbundle --release --build-name=${{ needs.setup.outputs.version }}
+
+      - name: Upload APK
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.setup.outputs.release_id }}/assets
+          asset_path: build/app/outputs/flutter-apk/app-release.apk
+          asset_name: PicaComic-${{ needs.setup.outputs.version }}-android.apk
+          asset_content_type: application/vnd.android.package-archive
+
+      - name: Upload AAB
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.setup.outputs.release_id }}/assets
+          asset_path: build/app/outputs/bundle/release/app-release.aab
+          asset_name: PicaComic-${{ needs.setup.outputs.version }}-android.aab
+          asset_content_type: application/octet-stream
+
+  build-windows:
+    runs-on: windows-latest
+    needs: setup
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Create installer
+        run: |
+          cd build/windows/x64/runner/Release
+          7z a -tzip ../../../../../PicaComic-${{ needs.setup.outputs.version }}-windows.zip *
+
+      - name: Upload Windows
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.setup.outputs.release_id }}/assets
+          asset_path: PicaComic-${{ needs.setup.outputs.version }}-windows.zip
+          asset_name: PicaComic-${{ needs.setup.outputs.version }}-windows.zip
+          asset_content_type: application/zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Linux
+        run: flutter build linux --release
+
+      - name: Create deb package
+        run: |
+          cd build/linux/x64/release/bundle
+          mkdir -p ../debian/DEBIAN
+          cat > ../debian/DEBIAN/control << EOF
+          Package: pica-comic
+          Version: ${{ needs.setup.outputs.version }}
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Depends: libgtk-3-0, liblzma5
+          Description: A comic app
+          EOF
+          mkdir -p ../debian/usr/bin
+          cp -r * ../debian/usr/bin/
+          cd ..
+          dpkg-deb --build debian pica-comic_${{ needs.setup.outputs.version }}_amd64.deb
+
+      - name: Upload Linux
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.setup.outputs.release_id }}/assets
+          asset_path: build/linux/x64/release/pica-comic_${{ needs.setup.outputs.version }}_amd64.deb
+          asset_name: PicaComic-${{ needs.setup.outputs.version }}-linux.deb
+          asset_content_type: application/vnd.debian.binary-package
+
+  build-macos:
+    runs-on: macos-latest
+    needs: setup
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build macOS
+        run: flutter build macos --release
+
+      - name: Create DMG
+        run: |
+          cd build/macos/Build/Products/Release
+          mkdir -p dmg
+          cp -r Pica\ Comic.app dmg/
+          hdiutil create -volname "PicaComic" -srcfolder dmg -ov -format UDZO PicaComic-${{ needs.setup.outputs.version }}-macos.dmg
+
+      - name: Upload macOS
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.setup.outputs.release_id }}/assets
+          asset_path: build/macos/Build/Products/Release/PicaComic-${{ needs.setup.outputs.version }}-macos.dmg
+          asset_name: PicaComic-${{ needs.setup.outputs.version }}-macos.dmg
+          asset_content_type: application/x-apple-diskimage
+
+  build-ios:
+    runs-on: macos-latest
+    needs: setup
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build iOS (no codesign)
+        run: |
+          flutter build ios --release --no-codesign
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r PicaComic-${{ needs.setup.outputs.version }}-ios.ipa Payload/
+
+      - name: Upload iOS
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.setup.outputs.release_id }}/assets
+          asset_path: build/ios/iphoneos/PicaComic-${{ needs.setup.outputs.version }}-ios.ipa
+          asset_name: PicaComic-${{ needs.setup.outputs.version }}-ios.ipa
+          asset_content_type: application/octet-stream
