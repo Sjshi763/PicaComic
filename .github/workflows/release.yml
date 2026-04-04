@@ -1,0 +1,8 @@
+name: release
+
+on:
+  release:
+    types: [ created ] 
+
+jobs:
+  release:
