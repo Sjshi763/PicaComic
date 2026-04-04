@@ -34,6 +34,17 @@ git clone https://github.com/Pacalini/PicaComic
 2. Install flutter: https://docs.flutter.dev/get-started/install
 3. Build Application: https://docs.flutter.dev/deployment
 
+
+## Automated release (GitHub Actions)
+
+The workflow `.github/workflows/release.yml` now builds release artifacts for:
+- Android (`app-release.apk`)
+- Windows (`pica-comic-windows.zip`)
+- iOS unsigned package (`pica-comic-ios.ipa`)
+- macOS app bundle zip (`pica-comic-macos.zip`)
+
+It runs automatically when a GitHub Release is **published**, and can also be manually triggered from **Actions → Release Multi Platform**.
+
 ## Introduction
 
 ### Built-in Comic Source
