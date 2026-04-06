@@ -34,7 +34,9 @@ jobs:
       - name: Update version
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          sed -i "s/^version:.*/version: $VERSION/" pubspec.yaml
+          # Calculate build number: 4.2.20 → 4220
+          BUILD_NUM=$(echo $VERSION | awk -F. '{print $1*1000 + $2*100 + $3}')
+          sed -i "s/^version:.*/version: $VERSION+$BUILD_NUM/" pubspec.yaml
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
@@ -54,8 +56,10 @@ jobs:
       - name: Get version
         id: get_version
         run: |
-          VERSION=$(grep '^version:' pubspec.yaml | cut -d' ' -f2 | cut -d'+' -f1)
+          FULL_VERSION=$(grep '^version:' pubspec.yaml | cut -d' ' -f2)
+          VERSION=$(echo $FULL_VERSION | cut -d'+' -f1)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
 
   build_android:
     name: Build Android
