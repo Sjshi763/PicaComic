@@ -1,0 +1,349 @@
+name: release
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.38.6
+
+jobs:
+  update_version:
+    name: Update version in pubspec.yaml
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Update version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          sed -i "s/^version:.*/version: $VERSION/" pubspec.yaml
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pubspec.yaml
+          git commit -m "chore: update version to $(grep '^version:' pubspec.yaml | cut -d' ' -f2)"
+          git push
+
+  get_version_manual:
+    name: Get version for manual build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get version
+        id: get_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | cut -d' ' -f2 | cut -d'+' -f1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  build_android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: [update_version, get_version_manual]
+    if: always() && (needs.update_version.result == 'success' || needs.get_version_manual.result == 'success')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build Android APK (universal)
+        run: flutter build apk --release
+      - name: Build Android APK (arm64-v8a)
+        run: flutter build apk --release --target-platform android-arm64 --split-per-abi
+      - name: Build Android APK (x86_64)
+        run: flutter build apk --release --target-platform android-x64 --split-per-abi
+      - name: Rename artifacts
+        run: |
+          VERSION="${{ needs.update_version.outputs.version || needs.get_version_manual.outputs.version }}"
+          mv build/app/outputs/flutter-apk/app-release.apk "PicaComic-$VERSION.apk"
+          mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "PicaComic-$VERSION-arm64-v8a.apk"
+          mv build/app/outputs/flutter-apk/app-x86_64-release.apk "PicaComic-$VERSION-x86_64.apk"
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pica-comic-android
+          path: |
+            PicaComic-*.apk
+
+  build_windows:
+    name: Build Windows
+    runs-on: windows-latest
+    needs: [update_version, get_version_manual]
+    if: always() && (needs.update_version.result == 'success' || needs.get_version_manual.result == 'success')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build Windows release
+        run: flutter build windows --release
+      - name: Get version
+        id: get_version
+        shell: pwsh
+        run: |
+          if ("${{ needs.update_version.outputs.version }}" -ne "") {
+            echo "version=${{ needs.update_version.outputs.version }}" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "version=${{ needs.get_version_manual.outputs.version }}" >> $env:GITHUB_OUTPUT
+          }
+      - name: Pack Windows artifact (zip)
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.version }}"
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "PicaComic-$version-windows.zip"
+      - name: Install WiX Toolset
+        run: dotnet tool install --global wix
+      - name: Create MSI installer
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.version }}"
+          $buildDir = "build/windows/x64/runner/Release"
+          
+          # Create WiX source file
+          $wxsContent = @"""
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+            <Product Id="*" Name="PicaComic" Language="1033" Version="$version" Manufacturer="PicaComic" UpgradeCode="E4F5A6B7-C8D9-4E0F-A1B2-C3D4E5F6A7B8">
+              <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+              <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+              <MediaTemplate EmbedCab="yes" />
+              
+              <Directory Id="TARGETDIR" Name="SourceDir">
+                <Directory Id="ProgramFilesFolder">
+                  <Directory Id="INSTALLFOLDER" Name="PicaComic" />
+                </Directory>
+                <Directory Id="ProgramMenuFolder">
+                  <Directory Id="ApplicationProgramsFolder" Name="PicaComic"/>
+                </Directory>
+              </Directory>
+              
+              <DirectoryRef Id="ApplicationProgramsFolder">
+                <Component Id="ApplicationShortcut" Guid="*">
+                  <Shortcut Id="ApplicationStartMenuShortcut" Name="PicaComic" Description="PicaComic Application" Target="[INSTALLFOLDER]pica_comic.exe" WorkingDirectory="INSTALLFOLDER"/>
+                  <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+                  <RegistryValue Root="HKCU" Key="Software\PicaComic" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+                </Component>
+              </DirectoryRef>
+              
+              <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+                <Component Id="MainExecutable" Guid="*">
+                  <File Id="MainExe" Source="$buildDir\pica_comic.exe" KeyPath="yes"/>
+                </Component>
+              </ComponentGroup>
+              
+              <Feature Id="ProductFeature" Title="PicaComic" Level="1">
+                <ComponentGroupRef Id="ProductComponents"/>
+                <ComponentRef Id="ApplicationShortcut"/>
+              </Feature>
+            </Product>
+          </Wix>
+          "@
+          
+          $wxsContent | Out-File -FilePath "installer.wxs" -Encoding UTF8
+          
+          # Compile MSI
+          wix build installer.wxs -o "PicaComic-$version-windows.msi"
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pica-comic-windows
+          path: |
+            PicaComic-*.zip
+            PicaComic-*.msi
+
+  build_apple:
+    name: Build Apple (iOS + macOS)
+    runs-on: macos-15
+    needs: [update_version, get_version_manual]
+    if: always() && (needs.update_version.result == 'success' || needs.get_version_manual.result == 'success')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Select Xcode
+        run: sudo xcode-select --switch /Applications/Xcode_16.4.app
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build iOS release (unsigned)
+        run: flutter build ios --release --no-codesign
+      - name: Build macOS release
+        run: flutter build macos --release
+      - name: Get version
+        id: get_version
+        run: |
+          if [ -n "${{ needs.update_version.outputs.version }}" ]; then
+            echo "version=${{ needs.update_version.outputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ needs.get_version_manual.outputs.version }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Package iOS IPA
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -R Runner.app Payload/
+          zip -r "PicaComic-$VERSION-app-ios.ipa" Payload
+          mv "PicaComic-$VERSION-app-ios.ipa" "$GITHUB_WORKSPACE/"
+      - name: Package macOS app
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          cd build/macos/Build/Products/Release
+          ditto -c -k --sequesterRsrc --keepParent pica_comic.app "PicaComic-$VERSION-macos-build.zip"
+          mv "PicaComic-$VERSION-macos-build.zip" "$GITHUB_WORKSPACE/"
+      - name: Upload Apple artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pica-comic-apple
+          path: |
+            PicaComic-*.ipa
+            PicaComic-*.zip
+
+  build_linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    needs: [update_version, get_version_manual]
+    if: always() && (needs.update_version.result == 'success' || needs.get_version_manual.result == 'success')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build Linux release
+        run: flutter build linux --release
+      - name: Get version
+        id: get_version
+        run: |
+          if [ -n "${{ needs.update_version.outputs.version }}" ]; then
+            echo "version=${{ needs.update_version.outputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ needs.get_version_manual.outputs.version }}" >> $GITHUB_OUTPUT
+          fi
+      - name: Build Debian package
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          mkdir -p debian/pkg/DEBIAN
+          mkdir -p debian/pkg/usr/share/pica-comic
+          mkdir -p debian/pkg/usr/share/applications
+          mkdir -p debian/pkg/usr/bin
+          
+          cp -r build/linux/x64/release/bundle/* debian/pkg/usr/share/pica-comic/
+          cp debian/gui/pica-comic.desktop debian/pkg/usr/share/applications/
+          cp debian/gui/pica-comic.png debian/pkg/usr/share/pica-comic/
+          
+          ln -s /usr/share/pica-comic/pica_comic debian/pkg/usr/bin/pica-comic
+          
+          cat > debian/pkg/DEBIAN/control << EOF
+          Package: picacomic
+          Version: $VERSION
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Maintainer: PicaComic <picacomic@example.com>
+          Description: A comic reader application
+           PicaComic is a cross-platform comic reader application.
+          EOF
+          
+          dpkg-deb --build debian/pkg "PicaComic-$VERSION-amd64.deb"
+      - name: Build Arch Linux package
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          sudo apt-get install -y zstd
+          
+          mkdir -p arch/pkg/usr/share/pica-comic
+          mkdir -p arch/pkg/usr/share/applications
+          mkdir -p arch/pkg/usr/bin
+          
+          cp -r build/linux/x64/release/bundle/* arch/pkg/usr/share/pica-comic/
+          cp debian/gui/pica-comic.desktop arch/pkg/usr/share/applications/
+          cp debian/gui/pica-comic.png arch/pkg/usr/share/pica-comic/
+          
+          ln -s /usr/share/pica-comic/pica_comic arch/pkg/usr/bin/pica-comic
+          
+          # Create .PKGINFO
+          cat > arch/pkg/.PKGINFO << EOF
+          pkgname = picacomic
+          pkgver = $VERSION-1
+          pkgdesc = A comic reader application
+          url = https://github.com/Sjshi763/PicaComic
+          arch = x86_64
+          license = MIT
+          EOF
+          
+          cd arch
+          tar --zst -cf "../PicaComic-$VERSION-x86_64.pkg.tar.zst" pkg .PKGINFO
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pica-comic-linux
+          path: |
+            PicaComic-*.deb
+            PicaComic-*.pkg.tar.zst
+
+  publish_release:
+    name: Publish release assets
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    needs:
+      - build_android
+      - build_windows
+      - build_apple
+      - build_linux
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: List all files
+        run: find dist -type f -name "PicaComic-*"
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/pica-comic-android/PicaComic-*.apk
+            dist/pica-comic-windows/PicaComic-*.zip
+            dist/pica-comic-windows/PicaComic-*.msi
+            dist/pica-comic-apple/PicaComic-*.ipa
+            dist/pica-comic-apple/PicaComic-*.zip
+            dist/pica-comic-linux/PicaComic-*.deb
+            dist/pica-comic-linux/PicaComic-*.pkg.tar.zst
+          fail_on_unmatched_files: true
