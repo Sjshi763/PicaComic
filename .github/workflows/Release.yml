@@ -69,6 +69,10 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+      - name: Setup Android signing
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/pica-comic.keystore
+          echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
       - name: Install dependencies
         run: flutter pub get
       - name: Build Android APK (universal)
