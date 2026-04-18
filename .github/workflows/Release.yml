@@ -152,14 +152,12 @@ jobs:
               <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
               <MediaTemplate EmbedCab="yes" />
               
-              <Directory Id="TARGETDIR" Name="SourceDir">
-                <Directory Id="ProgramFilesFolder">
-                  <Directory Id="INSTALLFOLDER" Name="PicaComic" />
-                </Directory>
-                <Directory Id="ProgramMenuFolder">
-                  <Directory Id="ApplicationProgramsFolder" Name="PicaComic"/>
-                </Directory>
-              </Directory>
+              <StandardDirectory Id="ProgramFiles64Folder">
+                <Directory Id="INSTALLFOLDER" Name="PicaComic" />
+              </StandardDirectory>
+              <StandardDirectory Id="ProgramMenuFolder">
+                <Directory Id="ApplicationProgramsFolder" Name="PicaComic"/>
+              </StandardDirectory>
               
               <DirectoryRef Id="ApplicationProgramsFolder">
                 <Component Id="ApplicationShortcut" Guid="*">
