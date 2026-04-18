@@ -61,6 +61,23 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "full_version=$FULL_VERSION" >> $GITHUB_OUTPUT
 
+  prepare_release_metadata:
+    name: Prepare release metadata
+    runs-on: ubuntu-latest
+    needs: [update_version, get_version_manual]
+    if: always() && (needs.update_version.result == 'success' || needs.get_version_manual.result == 'success')
+    steps:
+      - name: Generate metadata file
+        run: |
+          VERSION="${{ needs.update_version.outputs.version || needs.get_version_manual.outputs.version }}"
+          echo "VERSION=$VERSION" > release_meta.env
+          echo "TAG_NAME=v$VERSION" >> release_meta.env
+      - name: Upload metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pica-comic-release-meta
+          path: release_meta.env
+
   build_android:
     name: Build Android
     runs-on: ubuntu-latest
@@ -143,7 +160,7 @@ jobs:
         run: |
           $version = "${{ steps.get_version.outputs.version }}"
           $buildDir = "build/windows/x64/runner/Release"
-          
+
           # Create WiX source file
           $wxsContent = @"
           <?xml version="1.0" encoding="UTF-8"?>
@@ -151,14 +168,14 @@ jobs:
             <Package Name="PicaComic" Language="1033" Version="$version" Manufacturer="PicaComic" UpgradeCode="E4F5A6B7-C8D9-4E0F-A1B2-C3D4E5F6A7B8" InstallerVersion="500" Compressed="yes" Scope="perMachine">
               <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
               <MediaTemplate EmbedCab="yes" />
-              
+
               <StandardDirectory Id="ProgramFiles64Folder">
                 <Directory Id="INSTALLFOLDER" Name="PicaComic" />
               </StandardDirectory>
               <StandardDirectory Id="ProgramMenuFolder">
                 <Directory Id="ApplicationProgramsFolder" Name="PicaComic"/>
               </StandardDirectory>
-              
+
               <DirectoryRef Id="ApplicationProgramsFolder">
                 <Component Id="ApplicationShortcut" Guid="*">
                   <Shortcut Id="ApplicationStartMenuShortcut" Name="PicaComic" Description="PicaComic Application" Target="[INSTALLFOLDER]pica_comic.exe" WorkingDirectory="INSTALLFOLDER"/>
@@ -166,13 +183,13 @@ jobs:
                   <RegistryValue Root="HKCU" Key="Software\PicaComic" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
                 </Component>
               </DirectoryRef>
-              
+
               <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
                 <Component Id="MainExecutable" Guid="*">
                   <File Id="MainExe" Source="$buildDir\pica_comic.exe" KeyPath="yes"/>
                 </Component>
               </ComponentGroup>
-              
+
               <Feature Id="ProductFeature" Title="PicaComic" Level="1">
                 <ComponentGroupRef Id="ProductComponents"/>
                 <ComponentRef Id="ApplicationShortcut"/>
@@ -180,9 +197,9 @@ jobs:
             </Package>
           </Wix>
           "@
-          
+
           $wxsContent | Out-File -FilePath "installer.wxs" -Encoding UTF8
-          
+
           # Compile MSI
           wix build -acceptEula wix7 installer.wxs -o "PicaComic-$version-windows.msi"
       - name: Upload Windows artifacts
@@ -288,13 +305,13 @@ jobs:
           mkdir -p debian/pkg/usr/share/pica-comic
           mkdir -p debian/pkg/usr/share/applications
           mkdir -p debian/pkg/usr/bin
-          
+
           cp -r build/linux/x64/release/bundle/* debian/pkg/usr/share/pica-comic/
           cp debian/gui/pica-comic.desktop debian/pkg/usr/share/applications/
           cp debian/gui/pica-comic.png debian/pkg/usr/share/pica-comic/
-          
+
           ln -s /usr/share/pica-comic/pica_comic debian/pkg/usr/bin/pica-comic
-          
+
           cat > debian/pkg/DEBIAN/control << EOF
           Package: picacomic
           Version: $VERSION
@@ -305,23 +322,23 @@ jobs:
           Description: A comic reader application
            PicaComic is a cross-platform comic reader application.
           EOF
-          
+
           dpkg-deb --build debian/pkg "PicaComic-$VERSION-amd64.deb"
       - name: Build Arch Linux package
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
           sudo apt-get install -y zstd
-          
+
           mkdir -p arch/pkg/usr/share/pica-comic
           mkdir -p arch/pkg/usr/share/applications
           mkdir -p arch/pkg/usr/bin
-          
+
           cp -r build/linux/x64/release/bundle/* arch/pkg/usr/share/pica-comic/
           cp debian/gui/pica-comic.desktop arch/pkg/usr/share/applications/
           cp debian/gui/pica-comic.png arch/pkg/usr/share/pica-comic/
-          
+
           ln -s /usr/share/pica-comic/pica_comic arch/pkg/usr/bin/pica-comic
-          
+
           # Create .PKGINFO at archive root
           cat > arch/.PKGINFO << EOF
           pkgname = picacomic
@@ -331,7 +348,7 @@ jobs:
           arch = x86_64
           license = MIT
           EOF
-          
+
           cd arch
           tar --zst -cf "../PicaComic-$VERSION-x86_64.pkg.tar.zst" pkg .PKGINFO
       - name: Upload Linux artifacts
@@ -341,32 +358,3 @@ jobs:
           path: |
             PicaComic-*.deb
             PicaComic-*.pkg.tar.zst
-
-  publish_release:
-    name: Publish release assets
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release'
-    needs:
-      - build_android
-      - build_windows
-      - build_apple
-      - build_linux
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: dist
-      - name: List all files
-        run: find dist -type f -name "PicaComic-*"
-      - name: Publish to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/pica-comic-android/PicaComic-*.apk
-            dist/pica-comic-windows/PicaComic-*.zip
-            dist/pica-comic-windows/PicaComic-*.msi
-            dist/pica-comic-apple/PicaComic-*.ipa
-            dist/pica-comic-apple/PicaComic-*.zip
-            dist/pica-comic-linux/PicaComic-*.deb
-            dist/pica-comic-linux/PicaComic-*.pkg.tar.zst
-          fail_on_unmatched_files: true
