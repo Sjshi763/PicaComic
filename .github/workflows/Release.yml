@@ -325,8 +325,8 @@ jobs:
           
           ln -s /usr/share/pica-comic/pica_comic arch/pkg/usr/bin/pica-comic
           
-          # Create .PKGINFO
-          cat > arch/pkg/.PKGINFO << EOF
+          # Create .PKGINFO at archive root
+          cat > arch/.PKGINFO << EOF
           pkgname = picacomic
           pkgver = $VERSION-1
           pkgdesc = A comic reader application
