@@ -147,7 +147,7 @@ jobs:
           # Create WiX source file
           $wxsContent = @"
           <?xml version="1.0" encoding="UTF-8"?>
-          <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+          <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
             <Product Id="*" Name="PicaComic" Language="1033" Version="$version" Manufacturer="PicaComic" UpgradeCode="E4F5A6B7-C8D9-4E0F-A1B2-C3D4E5F6A7B8">
               <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
               <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
