@@ -3,11 +3,12 @@ import 'package:pica_comic/base.dart';
 import 'package:pica_comic/network/app_dio.dart';
 
 String? _updateInfo;
+const String kGitHubRepo = "Sjshi763/PicaComic";
 
 Future<String> getLatestVersion() async {
   var dio = logDio();
   var res = await dio
-      .get("https://api.github.com/repos/Pacalini/PicaComic/releases/latest");
+      .get("https://api.github.com/repos/$kGitHubRepo/releases/latest");
   _updateInfo = res.data["body"];
   return (res.data["tag_name"] as String).replaceFirst("v", "");
 }
@@ -72,5 +73,5 @@ Future<String?> getUpdatesInfo() async {
 }
 
 Future<String> getDownloadUrl() async {
-  return "https://github.com/Pacalini/PicaComic/releases/latest";
+  return "https://github.com/$kGitHubRepo/releases/latest";
 }
