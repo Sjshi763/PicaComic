@@ -142,7 +142,7 @@ jobs:
           $buildDir = "build/windows/x64/runner/Release"
           
           # Create WiX source file
-          $wxsContent = @"""
+          $wxsContent = @"
           <?xml version="1.0" encoding="UTF-8"?>
           <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
             <Product Id="*" Name="PicaComic" Language="1033" Version="$version" Manufacturer="PicaComic" UpgradeCode="E4F5A6B7-C8D9-4E0F-A1B2-C3D4E5F6A7B8">
