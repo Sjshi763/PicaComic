@@ -75,4 +75,4 @@ Pica Comic 内置了 6 个漫画源：
 漫画标签的中文翻译来自该项目。
 
 > [!CAUTION]
-> 看到好看的百合本子一定要来(tg)[https://t.me/+isVHEQ5uGes3NWM1]at群主看，ntr禁止出现在群里！
+> 看到好看的百合本子一定要来(tg)[https://t.me/+isVHEQ5uGes3NWM1] at群主看，ntr禁止出现在群里！
