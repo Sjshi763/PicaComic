@@ -148,8 +148,7 @@ jobs:
           $wxsContent = @"
           <?xml version="1.0" encoding="UTF-8"?>
           <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-            <Product Id="*" Name="PicaComic" Language="1033" Version="$version" Manufacturer="PicaComic" UpgradeCode="E4F5A6B7-C8D9-4E0F-A1B2-C3D4E5F6A7B8">
-              <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+            <Package Name="PicaComic" Language="1033" Version="$version" Manufacturer="PicaComic" UpgradeCode="E4F5A6B7-C8D9-4E0F-A1B2-C3D4E5F6A7B8" InstallerVersion="500" Compressed="yes" Scope="perMachine">
               <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
               <MediaTemplate EmbedCab="yes" />
               
@@ -180,7 +179,7 @@ jobs:
                 <ComponentGroupRef Id="ProductComponents"/>
                 <ComponentRef Id="ApplicationShortcut"/>
               </Feature>
-            </Product>
+            </Package>
           </Wix>
           "@
           
