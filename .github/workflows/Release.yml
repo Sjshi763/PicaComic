@@ -135,6 +135,9 @@ jobs:
           Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "PicaComic-$version-windows.zip"
       - name: Install WiX Toolset
         run: dotnet tool install --global wix
+      - name: Accept WiX OSMF EULA
+        shell: pwsh
+        run: wix eula accept wix7
       - name: Create MSI installer
         shell: pwsh
         run: |
@@ -184,7 +187,7 @@ jobs:
           $wxsContent | Out-File -FilePath "installer.wxs" -Encoding UTF8
           
           # Compile MSI
-          wix build installer.wxs -o "PicaComic-$version-windows.msi"
+          wix build -acceptEula wix7 installer.wxs -o "PicaComic-$version-windows.msi"
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
