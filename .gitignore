@@ -55,3 +55,5 @@ macos/
 linux/
 android/
 ios/
+devtools_options.yaml
+linux/flutter/generated_plugin_registrant.cc
