@@ -225,6 +225,8 @@ class FavoriteItem {
       return FavoriteItem.fromEhentai(comic);
     } else if (comic is JmComicBrief) {
       return FavoriteItem.fromJmComic(comic);
+    } else if (comic is HitomiComicBrief) {
+      return FavoriteItem.fromHitomi(comic);
     } else if (comic is HtComicBrief) {
       return FavoriteItem.fromHtcomic(comic);
     } else if (comic is NhentaiComicBrief) {

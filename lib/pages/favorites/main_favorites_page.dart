@@ -29,6 +29,8 @@ class FavoritesPageController extends StateController {
 
   var selectedComics = <FavoriteItem>[];
 
+  var visibleNetworkComics = <FavoriteItem>[];
+
   var openComicMenuFuncs = <FavoriteItem, Function>{};
 
   bool get isSelectingComics => selectedComics.isNotEmpty;
@@ -120,56 +122,62 @@ class FavoritesPage extends StatelessWidget with _LocalFavoritesManager {
 
   void multiSelectedMenu() {
     final size = MediaQuery.of(App.globalContext!).size;
+    final selectedComics = List<FavoriteItem>.from(controller.selectedComics);
+    final isNetwork = controller.isNetwork ?? false;
     showMenu(
         context: App.globalContext!,
         position: RelativeRect.fromLTRB(size.width, 0, 0, size.height),
         items: [
-          PopupMenuItem(
-            child: Text("删除".tl),
-            onTap: () {
-              for (var comic in controller.selectedComics) {
-                LocalFavoritesManager().deleteComic(controller.current!, comic);
-              }
-              controller.selectedComics.clear();
-              controller.update();
-            },
-          ),
-          PopupMenuItem(
-            child: Text("复制到".tl),
-            onTap: () {
-              Future.delayed(
-                const Duration(milliseconds: 200),
-                () => copyAllTo(controller.current!, controller.selectedComics),
-              );
-            },
-          ),
+          if (!isNetwork)
+            PopupMenuItem(
+              child: Text("删除".tl),
+              onTap: () {
+                for (var comic in selectedComics) {
+                  LocalFavoritesManager().deleteComic(controller.current!, comic);
+                }
+                controller.selectedComics.clear();
+                controller.update();
+              },
+            ),
+          if (!isNetwork)
+            PopupMenuItem(
+              child: Text("复制到".tl),
+              onTap: () {
+                Future.delayed(
+                  const Duration(milliseconds: 200),
+                  () => copyAllTo(controller.current!, selectedComics),
+                );
+              },
+            ),
           PopupMenuItem(
             child: Text("下载".tl),
             onTap: () {
               Future.delayed(
                 const Duration(milliseconds: 200),
                 () {
-                  var comics = controller.selectedComics;
-                  for (var comic in comics) {
+                  for (var comic in selectedComics) {
                     DownloadManager().addFavoriteDownload(comic);
                   }
+                  controller.selectedComics.clear();
+                  controller.update();
                   showToast(message: "已添加下载任务".tl);
                 },
               );
             },
           ),
-          PopupMenuItem(
-            child: Text("更新漫画信息".tl),
-            onTap: () {
-              Future.delayed(
-                const Duration(milliseconds: 200),
-                () {
-                  var comics = controller.selectedComics;
-                  UpdateFavoritesInfoDialog.show(comics, controller.current!);
-                },
-              );
-            },
-          ),
+          if (!isNetwork)
+            PopupMenuItem(
+              child: Text("更新漫画信息".tl),
+              onTap: () {
+                Future.delayed(
+                  const Duration(milliseconds: 200),
+                  () {
+                    UpdateFavoritesInfoDialog.show(
+                        selectedComics, controller.current!);
+                  },
+                );
+              },
+            ),
         ]);
   }
 
@@ -200,9 +208,11 @@ class FavoritesPage extends StatelessWidget with _LocalFavoritesManager {
               child: IconButton(
                 icon: const Icon(Icons.select_all),
                 onPressed: () {
-                  controller.selectedComics = LocalFavoritesManager()
-                      .getAllComics(controller.current!)
-                      .toList();
+                  controller.selectedComics = controller.isNetwork == true
+                      ? controller.visibleNetworkComics.toList()
+                      : LocalFavoritesManager()
+                          .getAllComics(controller.current!)
+                          .toList();
                   controller.update();
                 },
               ),
@@ -222,7 +232,8 @@ class FavoritesPage extends StatelessWidget with _LocalFavoritesManager {
               child: IconButton(
                 icon: const Icon(Icons.more_horiz),
                 onPressed: () {
-                  if (controller.selectedComics.length == 1) {
+                  if (controller.selectedComics.length == 1 &&
+                      controller.isNetwork != true) {
                     controller.openComicMenuFuncs[controller.selectedComics[0]]
                         ?.call();
                   } else {
@@ -338,6 +349,8 @@ class FavoritesPage extends StatelessWidget with _LocalFavoritesManager {
             controller.isNetwork = true;
             controller.selectingFolder = false;
             controller.networkData = data;
+            controller.selectedComics.clear();
+            controller.visibleNetworkComics.clear();
             controller.update();
             appdata.implicitData[0] = "0;1;${data?.title ?? ""}";
             appdata.writeImplicitData();
@@ -376,6 +389,8 @@ class FavoritesPage extends StatelessWidget with _LocalFavoritesManager {
               controller.current = data;
               controller.isNetwork = false;
               controller.selectingFolder = false;
+              controller.selectedComics.clear();
+              controller.visibleNetworkComics.clear();
               controller.update();
               appdata.implicitData[0] = "0;0;$data";
               appdata.writeImplicitData();
@@ -476,6 +491,34 @@ class FavoritesPage extends StatelessWidget with _LocalFavoritesManager {
       return NetworkFavoritePage(
         controller.networkData!,
         key: Key(controller.current ?? ""),
+        selectedComics: controller.selectedComics,
+        onComicsChanged: (comics) {
+          for (final comic in comics) {
+            if (!controller.visibleNetworkComics.contains(comic)) {
+              controller.visibleNetworkComics.add(comic);
+            }
+          }
+        },
+        onClick: (comic) {
+          if (controller.isSelectingComics) {
+            if (controller.selectedComics.contains(comic)) {
+              controller.selectedComics.remove(comic);
+            } else {
+              controller.selectedComics.add(comic);
+            }
+            controller.update();
+            return true;
+          }
+          return false;
+        },
+        onLongPressed: (comic) {
+          if (controller.selectedComics.contains(comic)) {
+            controller.selectedComics.remove(comic);
+          } else {
+            controller.selectedComics.add(comic);
+          }
+          controller.update();
+        },
       );
     } else {
       var count = LocalFavoritesManager().count(controller.current!);
