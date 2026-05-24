@@ -48,3 +48,8 @@ app.*.map.json
 
 # Keystore files
 *.keystore
+
+# 动态生成
+windows/
+macos/
+linux/
