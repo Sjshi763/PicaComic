@@ -33,6 +33,9 @@ extension ImageExt on ComicReadingPage {
         itemPositionsListener: logic.itemScrollListener,
         itemCount: logic.urls.length,
         addSemanticIndexes: false,
+        minCacheExtent: logic.isCurrentEpDownloaded
+            ? MediaQuery.of(context).size.height * 8
+            : null,
         scrollController: logic.scrollController,
         scrollBehavior: const MaterialScrollBehavior()
             .copyWith(scrollbars: false, dragDevices: _kTouchLikeDeviceTypes),
@@ -438,23 +441,44 @@ extension ImageExt on ComicReadingPage {
   void precacheComicImage(ComicReadingPageLogic logic, BuildContext context,
       int index, String target) {
     if (logic.requestedLoadingItems.length != logic.length) {
-      logic.requestedLoadingItems = List.filled(logic.length + 1, false);
+      logic.requestedLoadingItems = List.filled(logic.length, false);
     }
-    int precacheNum = int.parse(appdata.settings[28]) + index;
+
+    final isLocalEp = logic.isCurrentEpDownloaded;
+    final configuredPrecacheNum = int.parse(appdata.settings[28]);
+    final regularPrecacheNum =
+        isLocalEp && configuredPrecacheNum < 24 ? 24 : configuredPrecacheNum;
+    var precacheNum = regularPrecacheNum + index;
+
     for (; index < precacheNum; index++) {
-      if (index >= logic.urls.length || logic.requestedLoadingItems[index]) {
+      if (!_precacheSingleComicImage(logic, context, index, target)) {
         return;
       }
-      precacheImage(createImageProvider(type, logic, index, target), context);
     }
+
     if (!ImageManager.haveTask) {
-      precacheNum += 3;
+      final idlePrecacheNum = isLocalEp ? 12 : 3;
+      precacheNum += idlePrecacheNum;
       for (; index < precacheNum; index++) {
-        if (index >= logic.urls.length || logic.requestedLoadingItems[index]) {
+        if (!_precacheSingleComicImage(logic, context, index, target)) {
           return;
         }
-        precacheImage(createImageProvider(type, logic, index, target), context);
       }
     }
+  }
+
+  bool _precacheSingleComicImage(ComicReadingPageLogic logic,
+      BuildContext context, int index, String target) {
+    if (index >= logic.urls.length || logic.requestedLoadingItems[index]) {
+      return false;
+    }
+    logic.requestedLoadingItems[index] = true;
+    precacheImage(createImageProvider(type, logic, index, target), context)
+        .catchError((_) {
+      if (index < logic.requestedLoadingItems.length) {
+        logic.requestedLoadingItems[index] = false;
+      }
+    });
+    return true;
   }
 }
