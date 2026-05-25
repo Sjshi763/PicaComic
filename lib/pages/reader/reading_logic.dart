@@ -167,6 +167,10 @@ class ComicReadingPageLogic extends StateController {
   ///所有的图片链接
   var urls = <String>[];
 
+  /// 当前阅读章节是否已经完整下载到本地。
+  bool get isCurrentEpDownloaded =>
+      data.downloaded && data.checkEpDownloaded(order);
+
   void reload() {
     index = 1;
     pageController = PageController(initialPage: 1);

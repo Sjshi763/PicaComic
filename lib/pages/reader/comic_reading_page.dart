@@ -473,6 +473,7 @@ class ComicReadingPage extends StatelessWidget {
       logic.errorMessage = res.errorMessage;
     } else {
       logic.urls = res.data;
+      logic.requestedLoadingItems = [];
     }
     logic.isLoading = false;
     logic.update();
