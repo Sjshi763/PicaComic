@@ -61,7 +61,7 @@ class _NormalFavoritePage extends _SelectableNetworkComicsPage {
 
   @override
   Future<Res<List<BaseComic>>> getComics(int i) async {
-    final res = await data.loadComic(i);
+    final res = filterDuplicateTailComics(await data.loadComic(i), i);
     reportLoadedComics(res);
     return res;
   }
@@ -437,6 +437,50 @@ abstract class _SelectableNetworkComicsPage extends ComicsPage<BaseComic> {
     }
   }
 
+  Res<List<BaseComic>> filterDuplicateTailComics(
+    Res<List<BaseComic>> res,
+    int page,
+  ) {
+    if (res.error) return res;
+
+    final loadedIds = _loadedComicIds();
+    final pageIds = <String>{};
+    final comics = <BaseComic>[];
+    var foundDuplicate = false;
+
+    for (final comic in res.data) {
+      if (loadedIds.contains(comic.id) || !pageIds.add(comic.id)) {
+        foundDuplicate = true;
+        continue;
+      }
+      comics.add(comic);
+    }
+
+    if (!foundDuplicate) return res;
+
+    return Res(
+      comics,
+      subData: comics.isEmpty && page > 1 ? page - 1 : res.subData,
+    );
+  }
+
+  Set<String> _loadedComicIds() {
+    final logic =
+        StateController.findOrNull<ComicsPageLogic<BaseComic>>(tag: tag);
+    final ids = <String>{};
+    final comics = logic?.comics;
+    if (comics != null) {
+      ids.addAll(comics.map((comic) => comic.id));
+    }
+    final dividedComics = logic?.dividedComics;
+    if (dividedComics != null) {
+      for (final pageComics in dividedComics.values) {
+        ids.addAll(pageComics.map((comic) => comic.id));
+      }
+    }
+    return ids;
+  }
+
   List<FavoriteItem> _toFavoriteItems(List<BaseComic> comics) {
     final result = <FavoriteItem>[];
     for (final comic in comics) {
@@ -553,7 +597,7 @@ class _FavoriteFolder extends _SelectableNetworkComicsPage {
 
   @override
   Future<Res<List<BaseComic>>> getComics(int i) async {
-    final res = await data.loadComic(i, folderID);
+    final res = filterDuplicateTailComics(await data.loadComic(i, folderID), i);
     reportLoadedComics(res);
     return res;
   }
