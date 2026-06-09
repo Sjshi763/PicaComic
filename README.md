@@ -1,9 +1,9 @@
 # Pica Comic
 
 [![flutter](https://img.shields.io/badge/flutter-3.38.6-blue)](https://flutter.dev/)
-[![License](https://img.shields.io/github/license/Sjshi763/PicaComic)](https://github.com/Pacalini/PicaComic/blob/master/LICENSE)
-[![Download](https://img.shields.io/github/v/release/Sjshi763/PicaComic)](https://github.com/Pacalini/PicaComic/releases)
-[![stars](https://img.shields.io/github/stars/Sjshi763/PicaComic)](https://github.com/Pacalini/PicaComic/stargazers)
+[![License](https://img.shields.io/github/license/Sjshi763/PicaComic)](https://github.com/Sjshi763/PicaComic/blob/master/LICENSE)
+[![Download](https://img.shields.io/github/v/release/Sjshi763/PicaComic)](https://github.com/Sjshi763/PicaComic/releases)
+[![stars](https://img.shields.io/github/stars/Sjshi763/PicaComic)](https://github.com/Sjshi763/PicaComic/stargazers)
 
 使用 Flutter 构建的多源漫画阅读应用。
 ** 从[Pacalini](https://github.com/Pacalini) 分支而来 **
@@ -14,11 +14,11 @@
 
 
 还没改好，等我改好再放下载链接吧。
-<!-- <a href="https://github.com/Pacalini/PicaComic/releases">
+<!-- <a href="https://github.com/Sjshi763/PicaComic/releases">
 <img src="https://user-images.githubusercontent.com/69304392/148696068-0cfea65d-b18f-4685-82b5-329a330b1c0d.png"
 alt="Get it on GitHub" align="center" height="80" /></a>
 
-<a href="https://github.com/Pacalini/PicaComic/blob/master/INSTALL.md#obtainium">
+<a href="https://github.com/Sjshi763/PicaComic/blob/master/INSTALL.md#obtainium">
 <img src="https://github.com/ImranR98/Obtainium/blob/main/assets/graphics/badge_obtainium.png"
 alt="Get it on Obtainium" align="center" height="54" />
 </a> -->
@@ -32,7 +32,7 @@ paru -S pica-comic-bin
 
 1. 克隆代码仓库
 ```shell
-git clone https://github.com/Pacalini/PicaComic
+git clone https://github.com/Sjshi763/PicaComic
 ```
 2. 安装 Flutter：https://docs.flutter.dev/get-started/install
 3. 构建应用：https://docs.flutter.dev/deployment
