@@ -459,17 +459,12 @@ class PdfReadingData extends ReadingData {
       );
 
       if (pageImage != null) {
-        final imageBytes = pageImage.bytes;
-        if (imageBytes != null) {
-          // 保存到临时文件
-          final tempPath = '${App.cachePath}/pdf_temp_${page}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-          final tempFile = File(tempPath);
-          await tempFile.writeAsBytes(imageBytes);
+        // 保存到临时文件
+        final tempPath = '${App.cachePath}/pdf_temp_${page}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final tempFile = File(tempPath);
+        await tempFile.writeAsBytes(pageImage.pixels);
 
-          yield DownloadProgress(1, 1, "", tempPath);
-        } else {
-          yield* Stream.error(Exception("Failed to render PDF page: no image bytes"));
-        }
+        yield DownloadProgress(1, 1, "", tempPath);
       } else {
         yield* Stream.error(Exception("Failed to render PDF page"));
       }

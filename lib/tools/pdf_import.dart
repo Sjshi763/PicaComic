@@ -91,16 +91,13 @@ class PdfImportTool {
     try {
       final firstPage = document.pages[0];
       final pageImage = await firstPage.render(
-        width: firstPage.width * 0.5,
-        height: firstPage.height * 0.5,
+        width: (firstPage.width * 0.5).toInt(),
+        height: (firstPage.height * 0.5).toInt(),
       );
 
       if (pageImage != null) {
-        final imageBytes = pageImage.bytes;
-        if (imageBytes != null) {
-          final coverFile = File(coverPath);
-          await coverFile.writeAsBytes(imageBytes);
-        }
+        final coverFile = File(coverPath);
+        await coverFile.writeAsBytes(pageImage.pixels);
       }
     } catch (e, s) {
       LogManager.addLog(LogLevel.warning, "PdfImport", "Failed to render cover: $e\n$s");
