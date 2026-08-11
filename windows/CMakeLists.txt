@@ -4,6 +4,11 @@ project(pica_comic LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
+
+if(MSVC)
+  add_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+endif()
+
 set(BINARY_NAME "pica_comic")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
