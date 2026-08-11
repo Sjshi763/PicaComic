@@ -398,3 +398,88 @@ class CustomReadingData extends ReadingData{
   @override
   FavoriteType get favoriteType => FavoriteType(source!.intKey);
 }
+
+/// PDF阅读数据
+class PdfReadingData extends ReadingData {
+  final String pdfPath;
+  PdfDocument? _document;
+  final String comicId;
+
+  PdfReadingData(this.pdfPath, this.comicId);
+
+  @override
+  String get title => _getTitle();
+
+  @override
+  String get id => comicId;
+
+  @override
+  String get downloadId => comicId;
+
+  @override
+  ComicType get type => ComicType.pdf;
+
+  @override
+  String get sourceKey => "pdf";
+
+  @override
+  bool get hasEp => false;
+
+  @override
+  Map<String, String>? get eps => null;
+
+  @override
+  FavoriteType get favoriteType => FavoriteType.pdf;
+
+  String _getTitle() {
+    final fileName = pdfPath.split('/').last.split('\\').last;
+    return fileName.replaceAll('.pdf', '');
+  }
+
+  @override
+  Future<Res<List<String>>> loadEpNetwork(int ep) async {
+    try {
+      _document ??= await PdfDocument.openFile(pdfPath);
+      return Res(List.filled(_document!.pages.length, ""));
+    } catch (e, s) {
+      LogManager.addLog(LogLevel.error, "PdfReadingData", "Failed to load PDF: $e\n$s");
+      return const Res.error("Failed to open PDF file");
+    }
+  }
+
+  @override
+  Stream<DownloadProgress> loadImageNetwork(int ep, int page, String url) async* {
+    try {
+      _document ??= await PdfDocument.openFile(pdfPath);
+      final pdfPage = _document!.pages[page];
+
+      // 渲染PDF页面为图片
+      final pageImage = await pdfPage.render(
+        width: pdfPage.width.toInt(),
+        height: pdfPage.height.toInt(),
+      );
+
+      if (pageImage != null) {
+        // 保存到临时文件
+        final tempPath = '${App.cachePath}/pdf_temp_${page}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final tempFile = File(tempPath);
+        await tempFile.writeAsBytes(pageImage.bytes);
+
+        yield DownloadProgress(1, 1, "", tempPath);
+      } else {
+        yield* Stream.error(Exception("Failed to render PDF page"));
+      }
+    } catch (e, s) {
+      LogManager.addLog(LogLevel.error, "PdfReadingData", "Failed to render PDF page $page: $e\n$s");
+      yield* Stream.error(e);
+    }
+  }
+
+  @override
+  String buildImageKey(int ep, int page, String url) => "$pdfPath$page";
+
+  void dispose() {
+    _document?.dispose();
+    _document = null;
+  }
+}

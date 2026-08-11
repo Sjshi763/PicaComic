@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:pdfrx/pdfrx.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:pica_comic/comic_source/comic_source.dart';
@@ -23,6 +24,7 @@ import 'package:pica_comic/foundation/local_favorites.dart';
 import 'package:pica_comic/network/download.dart';
 import 'package:pica_comic/network/eh_network/eh_models.dart';
 import 'package:pica_comic/network/eh_network/get_gallery_id.dart';
+import 'package:pica_comic/network/pdf_comic_model.dart';
 import 'package:pica_comic/base.dart';
 import 'package:pica_comic/network/htmanga_network/htmanga_main_network.dart';
 import 'package:pica_comic/network/jm_network/jm_models.dart';
@@ -158,6 +160,17 @@ class ComicReadingPage extends StatelessWidget {
       {super.key, this.initialPage = 1})
       : initialEp = 1,
         readingData = NhentaiReadingData(title, target) {
+    StateController.put(ComicReadingPageLogic(
+        initialEp,
+        readingData,
+        initialPage,
+        () => _updateHistory(
+            StateController.find<ComicReadingPageLogic>(), false)));
+  }
+
+  ComicReadingPage.pdf(PdfDownloadedComic pdfComic, {super.key, this.initialPage = 1})
+      : initialEp = 1,
+        readingData = PdfReadingData(pdfComic.pdfPath, pdfComic.id) {
     StateController.put(ComicReadingPageLogic(
         initialEp,
         readingData,

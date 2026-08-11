@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pica_comic/components/components.dart';
 import 'package:pica_comic/foundation/app.dart';
+import 'package:pica_comic/network/pdf_comic_model.dart';
+import 'package:pica_comic/pages/reader/comic_reading_page.dart';
 import 'package:pica_comic/tools/app_links.dart';
 import 'package:pica_comic/tools/extensions.dart';
+import 'package:pica_comic/tools/pdf_import.dart';
 import 'package:pica_comic/tools/translations.dart';
 
 import 'ehentai/subscription.dart';
@@ -17,6 +20,32 @@ void openTool() {
       children: [
         ListTile(
           title: Text("工具".tl),
+        ),
+        ListTile(
+          leading: const Icon(Icons.picture_as_pdf),
+          title: Text("导入PDF文件".tl),
+          onTap: () async {
+            App.globalBack();
+            final pdfPath = await PdfImportTool.selectPdfFile();
+            if (pdfPath != null) {
+              final controller = showLoadingDialog(
+                App.globalContext!,
+                message: "正在导入PDF".tl,
+                barrierDismissible: false,
+              );
+              final comic = await PdfImportTool.importPdf(pdfPath, DownloadManager().path!);
+              controller.close();
+
+              if (comic != null) {
+                await DownloadManager().addPdfComic(comic);
+                showToast(message: "导入成功".tl);
+                // 打开阅读页面
+                App.globalTo(() => ComicReadingPage.pdf(comic));
+              } else {
+                showToast(message: "导入失败".tl);
+              }
+            }
+          },
         ),
         ListTile(
           leading: const Icon(Icons.subscriptions),

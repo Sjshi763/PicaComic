@@ -22,6 +22,7 @@ import 'package:pica_comic/network/htmanga_network/models.dart';
 import 'package:pica_comic/network/jm_network/jm_download.dart';
 import 'package:pica_comic/network/jm_network/jm_models.dart';
 import 'package:pica_comic/network/nhentai_network/download.dart';
+import 'package:pica_comic/network/pdf_comic_model.dart';
 import 'package:pica_comic/network/picacg_network/picacg_download_model.dart';
 import 'package:pica_comic/pages/download_page.dart';
 import 'package:pica_comic/tools/extensions.dart';
@@ -417,6 +418,12 @@ class DownloadManager with _DownloadDb implements Listenable {
   File getCover(String id) {
     return File("$path/${getDirectory(id)}/cover.jpg");
   }
+
+  ///添加PDF漫画到数据库
+  Future<void> addPdfComic(PdfDownloadedComic comic) async {
+    _addToDb(comic, comic.id, comic.time);
+    notifyListeners();
+  }
 }
 
 DownloadingItem downloadingItemFromMap(
@@ -558,7 +565,9 @@ extension AddDownloadExt on DownloadManager {
 DownloadedItem? _getComicFromJson(String id, String json, DateTime time, [String? directory]) {
   DownloadedItem comic;
   try {
-    if (id.contains('-')) {
+    if (id.startsWith("pdf_")) {
+      comic = PdfDownloadedComic.fromJson(jsonDecode(json));
+    } else if (id.contains('-')) {
       comic = CustomDownloadedItem.fromJson(jsonDecode(json));
     } else if (id.startsWith("jm")) {
       comic = DownloadedJmComic.fromMap(jsonDecode(json));

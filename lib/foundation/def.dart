@@ -10,6 +10,7 @@ enum ComicType {
   htManga,
   htFavorite,
   nhentai,
+  pdf,
   other;
 
   @override
