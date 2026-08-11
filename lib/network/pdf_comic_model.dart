@@ -36,7 +36,7 @@ class PdfComic extends BaseComic {
     required this.cover,
     required this.pdfPath,
     required this.pageCount,
-    this.tags = const {},
+    this.tags = const [],
     this.description = "",
   });
 

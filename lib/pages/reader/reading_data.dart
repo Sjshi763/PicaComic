@@ -441,8 +441,7 @@ class PdfReadingData extends ReadingData {
     try {
       _document ??= await PdfDocument.openFile(pdfPath);
       return Res(List.filled(_document!.pages.length, ""));
-    } catch (e, s) {
-      LogManager.addLog(LogLevel.error, "PdfReadingData", "Failed to load PDF: $e\n$s");
+    } catch (e) {
       return const Res.error("Failed to open PDF file");
     }
   }
@@ -460,17 +459,21 @@ class PdfReadingData extends ReadingData {
       );
 
       if (pageImage != null) {
-        // 保存到临时文件
-        final tempPath = '${App.cachePath}/pdf_temp_${page}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final tempFile = File(tempPath);
-        await tempFile.writeAsBytes(pageImage.bytes);
+        final imageBytes = pageImage.bytes;
+        if (imageBytes != null) {
+          // 保存到临时文件
+          final tempPath = '${App.cachePath}/pdf_temp_${page}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final tempFile = File(tempPath);
+          await tempFile.writeAsBytes(imageBytes);
 
-        yield DownloadProgress(1, 1, "", tempPath);
+          yield DownloadProgress(1, 1, "", tempPath);
+        } else {
+          yield* Stream.error(Exception("Failed to render PDF page: no image bytes"));
+        }
       } else {
         yield* Stream.error(Exception("Failed to render PDF page"));
       }
     } catch (e, s) {
-      LogManager.addLog(LogLevel.error, "PdfReadingData", "Failed to render PDF page $page: $e\n$s");
       yield* Stream.error(e);
     }
   }
