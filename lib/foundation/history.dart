@@ -187,7 +187,12 @@ class HistoryManager {
 
   bool _dbInitialized = false;
 
-  int get length => _db.select("select count(*) from history;").first[0] as int;
+  int get length {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
+    return _db.select("select count(*) from history;").first[0] as int;
+  }
 
   Map<String, bool>? _cachedHistory;
 
@@ -306,6 +311,9 @@ class HistoryManager {
   ///
   /// This function would be called when user start reading.
   Future<void> addHistory(History newItem) async {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
     var res = _db.select("""
       select * from history
       where target == ?;
@@ -340,6 +348,9 @@ class HistoryManager {
   ///退出阅读器时调用此函数, 修改阅读位置
   Future<void> saveReadHistory(History history,
       [bool updateMePage = true]) async {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
     _db.execute("""
         update history
         set time = ${DateTime.now().millisecondsSinceEpoch}, ep = ?, page = ?, readEpisode = ?, max_page = ?
@@ -359,11 +370,17 @@ class HistoryManager {
   }
 
   void clearHistory() {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
     _db.execute("delete from history;");
     updateCache();
   }
 
   void remove(String id) async {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
     _db.execute("""
       delete from history
       where target == '$id';
@@ -376,6 +393,9 @@ class HistoryManager {
   }
 
   void updateCache() {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
     _cachedHistory = {};
     var res = _db.select("""
         select * from history;
@@ -386,6 +406,9 @@ class HistoryManager {
   }
 
   History? findSync(String target) {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
     if(_cachedHistory == null) {
       updateCache();
     }
@@ -404,6 +427,9 @@ class HistoryManager {
   }
 
   List<History> getAll() {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
     var res = _db.select("""
       select * from history
       order by time DESC;
@@ -412,6 +438,9 @@ class HistoryManager {
   }
 
   void vacuum() {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
     _db.execute("""
       vacuum;
     """);
@@ -419,6 +448,9 @@ class HistoryManager {
 
   /// 获取最近一周的阅读数据, 用于生成图表, List中的元素是当天阅读的漫画数量
   List<int> getWeekData(int days) {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
     var res = _db.select("""
       select * from history
       where time > ${DateTime.now().add(Duration(days: 1 - days)).millisecondsSinceEpoch}
@@ -434,6 +466,9 @@ class HistoryManager {
 
   /// 获取最近阅读的漫画
   List<History> getRecent() {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
     var res = _db.select("""
       select * from history
       order by time DESC
@@ -444,6 +479,9 @@ class HistoryManager {
 
   /// 获取历史记录的数量
   int count() {
+    if (!_dbInitialized) {
+      throw StateError("HistoryManager not initialized. Call init() first.");
+    }
     var res = _db.select("""
       select count(*) from history;
     """);
