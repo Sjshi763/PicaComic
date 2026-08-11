@@ -2,6 +2,17 @@
 cmake_minimum_required(VERSION 3.14)
 project(pica_comic LANGUAGES CXX)
 
+if (MSVC)
+  # 解决 C1041 并行编译写入 PDB 冲突问题
+  add_compile_options(/FS)
+  
+  # 解决 C4819 编码警告（强制 UTF-8）
+  add_compile_options(/utf-8)
+  
+  # 解决 <experimental/coroutine> 废弃报错
+  add_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+endif()
+
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
 set(BINARY_NAME "pica_comic")

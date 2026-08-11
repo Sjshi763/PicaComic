@@ -50,7 +50,7 @@ dependencies:
   local_auth: ^2.3.0
   html: any
   dio_cookie_manager: any
-  image: 4.1.0
+  image: 4.8.0
   shimmer_animation: ^2.1.0
   cookie_jar: any
   workmanager: ^0.8.0
@@ -74,6 +74,7 @@ dependencies:
   collection: ^1.18.0
   window_manager:
   pdf: ^3.10.8
+  pdfrx: ^2.4.7
   flutter_qjs:
     git:
       url: https://github.com/wgh136/flutter_qjs
