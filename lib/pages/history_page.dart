@@ -18,12 +18,21 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  final comics = HistoryManager().getAll();
+  List<History> comics = [];
   bool searchInit = false;
   bool searchMode = false;
   String keyword = "";
   var results = <History>[];
   bool isModified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 延迟加载历史记录，确保 HistoryManager 已初始化
+    if (HistoryManager().isInitialized) {
+      comics = HistoryManager().getAll();
+    }
+  }
 
   @override
   void dispose() {

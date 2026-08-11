@@ -70,7 +70,9 @@ class ComicReadingPage extends StatelessWidget {
 
   final ReadingData readingData;
 
-  late final History? history = HistoryManager().findSync(readingData.id);
+  late final History? history = HistoryManager().isInitialized
+      ? HistoryManager().findSync(readingData.id)
+      : null;
 
   final int initialPage;
 

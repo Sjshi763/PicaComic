@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:pica_comic/comic_source/comic_source.dart';
 import 'package:pica_comic/foundation/app.dart';
 import 'package:pica_comic/foundation/log.dart';
+import 'package:pica_comic/foundation/state_controller.dart';
 import 'package:pica_comic/network/webdav.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -187,6 +188,9 @@ class HistoryManager {
 
   bool _dbInitialized = false;
 
+  /// 检查是否已初始化
+  bool get isInitialized => _dbInitialized;
+
   int get length {
     if (!_dbInitialized) {
       throw StateError("HistoryManager not initialized. Call init() first.");
@@ -289,6 +293,11 @@ class HistoryManager {
     ImageFavoriteManager.init();
 
     _dbInitialized = true;
+
+    // 通知 MePage 刷新
+    scheduleMicrotask(() {
+      StateController.findOrNull(tag: "me_page")?.update();
+    });
   }
 
   void readDataFromJson(List<dynamic> json) {

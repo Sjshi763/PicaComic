@@ -3,6 +3,7 @@ import 'package:pica_comic/comic_source/comic_source.dart';
 import 'package:pica_comic/components/components.dart';
 import 'package:pica_comic/foundation/history.dart';
 import 'package:pica_comic/foundation/image_loader/cached_image.dart';
+import 'package:pica_comic/foundation/state_controller.dart';
 import 'package:pica_comic/network/download.dart';
 import 'accounts_page.dart';
 import 'package:pica_comic/pages/download_page.dart';
@@ -12,9 +13,16 @@ import 'history_page.dart';
 import 'package:pica_comic/tools/translations.dart';
 import 'image_favorites.dart';
 
-class MePage extends StatelessWidget {
+class MePage extends StatefulWidget {
   const MePage({super.key});
 
+  @override
+  State<MePage> createState() => _MePageState();
+}
+
+class _MePageState extends StateWithController<MePage> {
+  @override
+  Object? get tag => "me_page";
   @override
   Widget build(BuildContext context) {
     return SizedBox.expand(
@@ -94,6 +102,34 @@ class MePage extends StatelessWidget {
   }
 
   Widget buildHistory(BuildContext context) {
+    // 检查是否已初始化，未初始化时显示占位符
+    if (!HistoryManager().isInitialized) {
+      return InkWell(
+        onTap: () => context.to(() => const HistoryPage()),
+        mouseCursor: SystemMouseCursors.click,
+        borderRadius: BorderRadius.circular(12),
+        child: Card.outlined(
+          margin: EdgeInsets.zero,
+          color: Colors.transparent,
+          child: Container(
+            margin: EdgeInsets.zero,
+            width: double.infinity,
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.history),
+                  title: Text("${"历史记录".tl}(0)"),
+                  trailing: const Icon(Icons.chevron_right),
+                  mouseCursor: SystemMouseCursors.click,
+                ),
+                const SizedBox(height: 140),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     var history = HistoryManager().getRecent();
     return InkWell(
       onTap: () => context.to(() => const HistoryPage()),

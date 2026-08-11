@@ -249,7 +249,7 @@ abstract class ComicTile extends StatelessWidget {
     var isFavorite = appdata.settings[72] == '1'
         ? LocalFavoritesManager().isExist(comicID!)
         : false;
-    var history = appdata.settings[73] == '1'
+    var history = appdata.settings[73] == '1' && HistoryManager().isInitialized
         ? HistoryManager().findSync(comicID!)
         : null;
     if (history?.page == 0) {
