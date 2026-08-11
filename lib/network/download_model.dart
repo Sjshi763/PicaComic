@@ -56,6 +56,7 @@ enum DownloadType {
   hitomi,
   htmanga,
   nhentai,
+  pdf,
   other,
   favorite;
 
@@ -66,6 +67,7 @@ enum DownloadType {
         hitomi => ComicType.hitomi,
         htmanga => ComicType.htManga,
         nhentai => ComicType.nhentai,
+        pdf => ComicType.pdf,
         other => ComicType.other,
         favorite => ComicType.other,
       };

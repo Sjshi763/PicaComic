@@ -31,6 +31,7 @@ import 'package:pica_comic/foundation/local_favorites.dart';
 import 'package:pica_comic/network/eh_network/eh_download_model.dart';
 import 'package:pica_comic/network/jm_network/jm_download.dart';
 import 'package:pica_comic/network/picacg_network/picacg_download_model.dart';
+import 'package:pica_comic/network/pdf_comic_model.dart';
 import 'dart:io';
 import 'package:pica_comic/tools/translations.dart';
 import 'package:pica_comic/components/components.dart';
@@ -40,7 +41,10 @@ import 'htmanga/ht_comic_page.dart';
 extension ReadComic on DownloadedItem {
   void read({int? ep}) async {
     final comic = this;
-    if (comic.type == DownloadType.picacg) {
+    if (comic.type == DownloadType.pdf) {
+      final pdfComic = comic as PdfDownloadedComic;
+      App.globalTo(() => ComicReadingPage.pdf(pdfComic));
+    } else if (comic.type == DownloadType.picacg) {
       var history =
           await History.findOrCreate((comic as DownloadedComic).comicItem);
       App.globalTo(
@@ -319,7 +323,7 @@ class DownloadPage extends StatelessWidget {
     var dio = logDio();
     try {
       await dio.download(
-        "https://raw.githubusercontent.com/Pacalini/PicaComic/master/fonts/NotoSansSC-Regular.ttf",
+        "https://raw.githubusercontent.com/Sjshi763/PicaComic/master/fonts/NotoSansSC-Regular.ttf",
         "${App.dataPath}/font.ttf",
         cancelToken: cancelToken,
       );
@@ -375,7 +379,9 @@ class DownloadPage extends StatelessWidget {
   Widget buildItem(BuildContext context, DownloadPageLogic logic, int index) {
     bool selected = logic.selected[index];
     var type = logic.comics[index].type.name;
-    if (logic.comics[index].type == DownloadType.other) {
+    if (logic.comics[index].type == DownloadType.pdf) {
+      type = "PDF";
+    } else if (logic.comics[index].type == DownloadType.other) {
       type = (logic.comics[index] as CustomDownloadedItem).sourceName;
     }
     return Padding(
@@ -859,6 +865,9 @@ class DownloadPage extends StatelessWidget {
                                 LocalFavoritesManager().addComic(
                                     folder!,
                                     switch (comic.type) {
+                                      DownloadType.pdf =>
+                                        FavoriteItem.fromPdf(
+                                            (comic as PdfDownloadedComic)),
                                       DownloadType.picacg =>
                                         FavoriteItem.fromPicacg(
                                             (comic as DownloadedComic)
