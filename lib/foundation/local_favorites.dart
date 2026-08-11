@@ -308,10 +308,13 @@ class LocalFavoritesManager {
 
   late Database _db;
 
+  bool _dbInitialized = false;
+
   Future<void> init() async {
     _db = sqlite3.open("${App.dataPath}/local_favorite.db");
     _checkAndCreate();
     await readData();
+    _dbInitialized = true;
   }
 
   void _checkAndCreate() async {
@@ -417,6 +420,11 @@ class LocalFavoritesManager {
   /// This function will delete current database, then create a new one, finally
   /// import data.
   Future<void> readData() async {
+    // Ensure _db is initialized before accessing it
+    if (!_dbInitialized) {
+      await init();
+      return;
+    }
     var file = File("${App.dataPath}/localFavorite");
     if (file.existsSync()) {
       Map<String, List<FavoriteItem>> allComics = {};

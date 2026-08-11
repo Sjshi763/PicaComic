@@ -185,6 +185,8 @@ class HistoryManager {
 
   late Database _db;
 
+  bool _dbInitialized = false;
+
   int get length => _db.select("select count(*) from history;").first[0] as int;
 
   Map<String, bool>? _cachedHistory;
@@ -195,6 +197,10 @@ class HistoryManager {
       LogManager.addLog(
           LogLevel.info, "HistoryManager.tryUpdateDb", "db file not exist");
       return;
+    }
+    // Ensure _db is initialized before accessing it
+    if (!_dbInitialized) {
+      await init();
     }
     var db = sqlite3.open(file.path);
     var newHistory0 = db.select("""
@@ -276,6 +282,8 @@ class HistoryManager {
     }
 
     ImageFavoriteManager.init();
+
+    _dbInitialized = true;
   }
 
   void readDataFromJson(List<dynamic> json) {
